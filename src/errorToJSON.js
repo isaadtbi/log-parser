@@ -1,10 +1,14 @@
 var fs = require('fs');
+
+let fileName = `ssl_error_log-20240413-2`;
 var lineReader = require('readline').createInterface({
-    input: fs.createReadStream('./data/ssl_error_log-20240413.txt')
+    input: fs.createReadStream(`./data/${fileName}.txt`)
   });
   
-  let lineCount = 0;
-  let errorsArray = [];
+  let lineCount = 0,
+      errorsArray = [],
+      occurenceMap = new Map();
+
   lineReader.on('line', function (line) {
     lineCount++
     //console.log(line);
@@ -20,7 +24,15 @@ var lineReader = require('readline').createInterface({
         const errorObject = {
             date, type, pid, ip, message
         }
-        errorsArray.push(errorObject);
+
+        //check if the errorObject already exists in occurenceMap
+        if (occurenceMap.has(errorObject.message)) {
+          occurenceMap.get(errorObject.message).occurence++;
+        } else {
+          occurenceMap.set(errorObject.message, {occurence: 1});
+        }
+
+        //errorsArray.push(errorObject);
         //save this new array to a file for every error for now.
     }
 
@@ -31,12 +43,11 @@ var lineReader = require('readline').createInterface({
   });
   
   lineReader.on('close', function () {
-    // var json = JSON.stringify(errorsArray);
-    // fs.writeFileSync("./results/errors.json", json, function(err) {
-    //     if (err) throw err;
-    //     console.log('complete');
-    //     }
-    // );
+        fs.writeFileSync(`./results/${fileName}_occurenceMap.json`, JSON.stringify([...occurenceMap]), function(err) {
+            if (err) throw err;
+            console.log('complete');
+            }
+        );
         console.log(lineCount)
         process.exit(0);
   });
